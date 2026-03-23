@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Threadoc
 
-## Getting Started
+Threadoc (TD) is a collaborative Markdown reading workspace built with Next.js, MUI, and Supabase.
 
-First, run the development server:
+## What is included
+
+- Authenticated document library with a masonry-style, Pinterest-like layout
+- Reader-first document view with anchored comments
+- Public share links per document
+- Optional public comments visibility
+- Optional anonymous comments on public links
+- Admin document editor with live Markdown preview
+- Admin user management and invite flow
+
+## Stack
+
+- Next.js 16 App Router
+- React 19
+- MUI 7
+- Supabase Auth + Postgres
+- Mermaid for flow diagrams inside Markdown
+
+## Environment variables
+
+Create `.env.local` from `.env.example` and fill in:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Database setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Apply the base schema:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sql
+\i supabase/schema.sql
+```
 
-## Learn More
+Then apply the incremental migrations in order:
 
-To learn more about Next.js, take a look at the following resources:
+```sql
+\i supabase/migrations/20260322_add_annotation_ranges.sql
+\i supabase/migrations/20260323_public_sharing_and_comment_identities.sql
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Local development
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run dev
+```
 
-## Deploy on Vercel
+Open `http://localhost:3000`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Vercel deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Push the repository to GitHub, GitLab, or Bitbucket.
+2. Import the project into Vercel as a Next.js app.
+3. Add the three Supabase environment variables in the Vercel project settings:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+4. Redeploy after applying the SQL schema and migrations to the production Supabase database.
+5. Set your Supabase Auth redirect URLs to include the final Vercel domain.
+
+## Notes
+
+- Public share pages are served from `/share/[slug]`.
+- Public comments are only available if the document has public comments enabled.
+- Anonymous comments are only available if both public access and public comments are enabled.
+- The current Codex environment used for implementation did not include a working `node` / `npm` runtime, so build and lint verification should be run on a machine with Node installed.
