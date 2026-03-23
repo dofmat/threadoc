@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -25,19 +25,27 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
 
-  // Redirect unauthenticated users to login
+  // Redirect unauthenticated users to login.
   const isPublicRoute = pathname.startsWith('/share/');
-  const isPublicCommentApi = pathname === '/api/comments' && request.method === 'POST';
+  const isPublicCommentApi =
+    pathname === '/api/comments' && request.method === 'POST';
 
-  if (!user && pathname !== '/login' && !isPublicRoute && !isPublicCommentApi) {
+  if (
+    !user &&
+    pathname !== '/login' &&
+    !isPublicRoute &&
+    !isPublicCommentApi
+  ) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Guard admin routes
+  // Guard admin routes.
   if (pathname.startsWith('/admin')) {
     const role = user?.user_metadata?.role;
     if (role !== 'admin') {
@@ -49,7 +57,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|login|public).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|login|public).*)'],
 };

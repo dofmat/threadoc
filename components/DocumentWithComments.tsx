@@ -14,6 +14,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import PublicIcon from '@mui/icons-material/Public';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
+import type { CommentViewModel } from '@/lib/comment-view-models';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { getInitials } from '@/lib/user-display';
 
@@ -23,18 +24,7 @@ type Viewer = {
   name: string;
 };
 
-type Comment = {
-  id: string;
-  content: string;
-  anchor_text: string | null;
-  anchor_start: number | null;
-  anchor_end: number | null;
-  author_name: string | null;
-  is_anonymous: boolean;
-  created_at: string;
-  user_id: string | null;
-  profiles?: { email: string; name: string };
-};
+type Comment = CommentViewModel;
 
 type FloatingForm = {
   anchor: string;
@@ -352,13 +342,13 @@ export function DocumentWithComments({
 
         {comments.map((comment) => {
           const displayName = getCommentDisplayName(comment);
-          const canDelete = Boolean(currentUser) && (currentUser.id === comment.user_id);
+          const canDelete = currentUser?.id === comment.user_id;
 
           return (
             <Box
               key={comment.id}
               ref={(element) => {
-                cardRefs.current[comment.id] = element;
+                cardRefs.current[comment.id] = element as HTMLDivElement | null;
               }}
               sx={{
                 position: isDesktop ? 'absolute' : 'relative',
