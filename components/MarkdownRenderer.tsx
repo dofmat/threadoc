@@ -52,21 +52,39 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: { co
           ),
           blockquote: ({ children }) => (
             <Box
-              sx={{
-                my: 2,
-                pl: 2,
-                py: 0.5,
-                borderLeft: '4px solid',
-                borderColor: 'rgba(184, 154, 96, 0.5)',
-                bgcolor: 'rgba(247, 242, 231, 0.65)',
-                borderRadius: 1,
-              }}
+              sx={[
+                {
+                  my: 2,
+                  pl: 2,
+                  py: 0.5,
+                  borderLeft: '4px solid',
+                  borderColor: 'rgba(184, 154, 96, 0.5)',
+                  bgcolor: 'rgba(247, 242, 231, 0.65)',
+                  borderRadius: 1,
+                },
+                (theme) =>
+                  theme.applyStyles('dark', {
+                    borderColor: 'rgba(157, 199, 255, 0.45)',
+                    bgcolor: 'rgba(23, 40, 60, 0.82)',
+                  }),
+              ]}
             >
               {children}
             </Box>
           ),
           table: ({ children }) => (
-            <TableContainer component={Paper} variant="outlined" sx={{ my: 3, borderRadius: 3 }}>
+            <TableContainer
+              component={Paper}
+              variant="outlined"
+              sx={[
+                { my: 3, borderRadius: 3 },
+                (theme) =>
+                  theme.applyStyles('dark', {
+                    bgcolor: 'rgba(17, 28, 43, 0.98)',
+                    borderColor: 'rgba(112, 163, 215, 0.18)',
+                  }),
+              ]}
+            >
               <Table size="small">{children}</Table>
             </TableContainer>
           ),
@@ -74,7 +92,15 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: { co
           tbody: ({ children }) => <TableBody>{children}</TableBody>,
           tr: ({ children }) => <TableRow>{children}</TableRow>,
           th: ({ children }) => (
-            <TableCell sx={{ fontWeight: 700, bgcolor: 'rgba(247, 242, 231, 0.72)' }}>
+            <TableCell
+              sx={[
+                { fontWeight: 700, bgcolor: 'rgba(247, 242, 231, 0.72)' },
+                (theme) =>
+                  theme.applyStyles('dark', {
+                    bgcolor: 'rgba(23, 40, 60, 0.92)',
+                  }),
+              ]}
+            >
               {children}
             </TableCell>
           ),
@@ -84,13 +110,45 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: { co
             const code = String(children).trim();
             if (lang === 'mermaid') return <MermaidDiagram chart={code} />;
             return (
-              <Box component="code" sx={{ bgcolor: 'grey.100', borderRadius: 1, px: 0.5, fontFamily: 'monospace', fontSize: '0.875em' }}>
+              <Box
+                component="code"
+                sx={[
+                  {
+                    bgcolor: 'grey.100',
+                    borderRadius: 1,
+                    px: 0.5,
+                    fontFamily: 'monospace',
+                    fontSize: '0.875em',
+                  },
+                  (theme) =>
+                    theme.applyStyles('dark', {
+                      bgcolor: 'rgba(23, 40, 60, 0.95)',
+                    }),
+                ]}
+              >
                 {children}
               </Box>
             );
           },
           pre: ({ children }) => (
-            <Box component="pre" sx={{ bgcolor: 'grey.100', borderRadius: 2, p: 2, overflow: 'auto', mb: 2, fontFamily: 'monospace', fontSize: '0.875rem' }}>
+            <Box
+              component="pre"
+              sx={[
+                {
+                  bgcolor: 'grey.100',
+                  borderRadius: 2,
+                  p: 2,
+                  overflow: 'auto',
+                  mb: 2,
+                  fontFamily: 'monospace',
+                  fontSize: '0.875rem',
+                },
+                (theme) =>
+                  theme.applyStyles('dark', {
+                    bgcolor: 'rgba(23, 40, 60, 0.95)',
+                  }),
+              ]}
+            >
               {children}
             </Box>
           ),

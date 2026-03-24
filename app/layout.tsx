@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
+import InitColorSchemeScript from '@mui/material/InitColorSchemeScript';
+import { cookies } from 'next/headers';
 import { ThemeRegistry } from '@/components/ThemeRegistry';
+import { normalizeThemeMode, THEME_MODE_COOKIE } from '@/lib/theme-mode';
 
 export const metadata: Metadata = {
   title: 'Threadoc',
@@ -10,11 +13,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const initialMode = normalizeThemeMode(cookieStore.get(THEME_MODE_COOKIE)?.value);
+
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeRegistry>{children}</ThemeRegistry>
+        <InitColorSchemeScript
+          attribute="data-mui-color-scheme"
+          modeStorageKey={THEME_MODE_COOKIE}
+          defaultMode={initialMode}
+        />
+        <ThemeRegistry initialMode={initialMode}>{children}</ThemeRegistry>
       </body>
     </html>
   );

@@ -46,13 +46,21 @@ export default async function HomePage() {
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Card
           variant="outlined"
-          sx={{
-            mb: 4,
-            borderRadius: 4,
-            borderColor: 'rgba(12, 123, 220, 0.12)',
-            background:
-              'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(241,248,255,0.96) 100%)',
-          }}
+          sx={[
+            {
+              mb: 4,
+              borderRadius: 4,
+              borderColor: 'rgba(12, 123, 220, 0.12)',
+              background:
+                'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(241,248,255,0.96) 100%)',
+            },
+            (theme) =>
+              theme.applyStyles('dark', {
+                borderColor: 'rgba(112, 163, 215, 0.18)',
+                background:
+                  'linear-gradient(135deg, rgba(17, 28, 43, 0.96) 0%, rgba(18, 44, 72, 0.84) 100%)',
+              }),
+          ]}
         >
           <CardContent sx={{ p: { xs: 3, md: 4 } }}>
             <Stack spacing={2}>

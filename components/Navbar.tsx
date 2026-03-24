@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { ThemeModeToggle } from '@/components/ThemeModeToggle';
 
 export function Navbar({ isAdmin }: { isAdmin: boolean }) {
   const router = useRouter();
@@ -23,14 +24,26 @@ export function Navbar({ isAdmin }: { isAdmin: boolean }) {
     <Box sx={{ position: 'sticky', top: 0, zIndex: 20, px: { xs: 1.5, md: 2.5 }, pt: 1.5 }}>
       <Paper
         elevation={0}
-        sx={{
-          px: { xs: 1.5, md: 2.25 },
-          py: 1.25,
-          borderRadius: { xs: 3, md: 5 },
-          border: '1px solid rgba(12, 123, 220, 0.12)',
-          backdropFilter: 'blur(14px)',
-          bgcolor: 'rgba(255,255,255,0.82)',
-        }}
+        variant="outlined"
+        sx={[
+          {
+            px: { xs: 1.5, md: 2.25 },
+            py: 1.25,
+            borderRadius: { xs: 3, md: 5 },
+            backdropFilter: 'blur(14px)',
+            bgcolor: 'rgba(255,255,255,0.82)',
+            backgroundImage:
+              'linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(244, 249, 255, 0.82) 100%)',
+            boxShadow: '0 10px 30px rgba(12, 35, 64, 0.08)',
+          },
+          (theme) =>
+            theme.applyStyles('dark', {
+              bgcolor: 'rgba(11, 20, 32, 0.84)',
+              backgroundImage:
+                'linear-gradient(180deg, rgba(20, 33, 50, 0.96) 0%, rgba(11, 20, 32, 0.92) 100%)',
+              boxShadow: '0 14px 36px rgba(0, 0, 0, 0.35)',
+            }),
+        ]}
       >
         <Stack
           direction={{ xs: 'column', md: 'row' }}
@@ -100,6 +113,7 @@ export function Navbar({ isAdmin }: { isAdmin: boolean }) {
                 Admin
               </Button>
             )}
+            <ThemeModeToggle />
             <Button
               onClick={handleLogout}
               size="small"

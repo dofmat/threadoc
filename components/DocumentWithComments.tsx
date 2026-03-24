@@ -328,26 +328,41 @@ export function DocumentWithComments({
       <Box ref={contentRef} sx={{ minWidth: 0 }}>
         <Paper
           variant="outlined"
-          sx={{
-            p: { xs: 2.5, md: 4 },
-            borderRadius: 5,
-            borderColor: 'rgba(74, 112, 147, 0.18)',
-            background:
-              'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,251,255,0.98) 100%)',
-            userSelect: 'text',
-            WebkitUserSelect: 'text',
-            WebkitTouchCallout: 'default',
-          }}
+          sx={[
+            {
+              p: { xs: 2.5, md: 4 },
+              borderRadius: 5,
+              borderColor: 'rgba(74, 112, 147, 0.18)',
+              background:
+                'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,251,255,0.98) 100%)',
+              userSelect: 'text',
+              WebkitUserSelect: 'text',
+              WebkitTouchCallout: 'default',
+            },
+            (theme) =>
+              theme.applyStyles('dark', {
+                borderColor: 'rgba(112, 163, 215, 0.18)',
+                background:
+                  'linear-gradient(180deg, rgba(17, 28, 43, 0.98) 0%, rgba(12, 21, 33, 0.98) 100%)',
+              }),
+          ]}
         >
           <Stack spacing={2.5}>
             <Paper
               variant="outlined"
-              sx={{
-                p: 1.75,
-                borderRadius: 3,
-                bgcolor: 'rgba(237, 246, 255, 0.9)',
-                borderColor: 'rgba(68, 140, 189, 0.22)',
-              }}
+              sx={[
+                {
+                  p: 1.75,
+                  borderRadius: 3,
+                  bgcolor: 'rgba(237, 246, 255, 0.9)',
+                  borderColor: 'rgba(68, 140, 189, 0.22)',
+                },
+                (theme) =>
+                  theme.applyStyles('dark', {
+                    bgcolor: 'rgba(18, 44, 72, 0.7)',
+                    borderColor: 'rgba(104, 180, 255, 0.22)',
+                  }),
+              ]}
             >
               <Typography variant="body2" color="text.secondary">
                 Select any passage to open the note composer. On larger screens the discussion
@@ -409,15 +424,21 @@ export function DocumentWithComments({
               <Paper
                 variant="outlined"
                 onClick={() => setActiveId((current) => (current === comment.id ? null : comment.id))}
-                sx={{
-                  p: 1.5,
-                  cursor: 'pointer',
-                  borderRadius: 3,
-                  transition: 'border-color 0.15s, background-color 0.15s',
-                  borderColor: comment.id === activeId ? 'primary.main' : 'divider',
-                  bgcolor: comment.id === activeId ? 'rgba(237, 246, 255, 0.98)' : 'background.paper',
-                  '&:hover': { borderColor: 'primary.light' },
-                }}
+                sx={[
+                  {
+                    p: 1.5,
+                    cursor: 'pointer',
+                    borderRadius: 3,
+                    transition: 'border-color 0.15s, background-color 0.15s',
+                    borderColor: comment.id === activeId ? 'primary.main' : 'divider',
+                    bgcolor: comment.id === activeId ? 'rgba(237, 246, 255, 0.98)' : 'background.paper',
+                    '&:hover': { borderColor: 'primary.light' },
+                  },
+                  (theme) =>
+                    theme.applyStyles('dark', {
+                      bgcolor: comment.id === activeId ? 'rgba(18, 44, 72, 0.92)' : 'background.paper',
+                    }),
+                ]}
               >
                 <Stack direction="row" spacing={1.25} alignItems="center" mb={1.25}>
                   <Avatar
@@ -511,18 +532,25 @@ export function DocumentWithComments({
         <Paper
           ref={formRef}
           elevation={10}
-          sx={{
-            position: isDesktop ? 'absolute' : 'fixed',
-            top: isDesktop ? form.y : 'auto',
-            left: isDesktop ? form.x : MOBILE_FORM_GUTTER,
-            right: isDesktop ? 'auto' : MOBILE_FORM_GUTTER,
-            bottom: isDesktop ? 'auto' : MOBILE_FORM_GUTTER,
-            width: isDesktop ? FORM_WIDTH : 'auto',
-            maxWidth: `calc(100vw - ${MOBILE_FORM_GUTTER * 2}px)`,
-            p: 2,
-            borderRadius: 3,
-            zIndex: 1400,
-          }}
+          sx={[
+            {
+              position: isDesktop ? 'absolute' : 'fixed',
+              top: isDesktop ? form.y : 'auto',
+              left: isDesktop ? form.x : MOBILE_FORM_GUTTER,
+              right: isDesktop ? 'auto' : MOBILE_FORM_GUTTER,
+              bottom: isDesktop ? 'auto' : MOBILE_FORM_GUTTER,
+              width: isDesktop ? FORM_WIDTH : 'auto',
+              maxWidth: `calc(100vw - ${MOBILE_FORM_GUTTER * 2}px)`,
+              p: 2,
+              borderRadius: 3,
+              zIndex: 1400,
+            },
+            (theme) =>
+              theme.applyStyles('dark', {
+                backgroundImage:
+                  'linear-gradient(180deg, rgba(17, 28, 43, 0.98) 0%, rgba(12, 21, 33, 0.98) 100%)',
+              }),
+          ]}
         >
           <Typography
             variant="caption"
