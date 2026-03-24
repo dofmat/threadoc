@@ -19,7 +19,15 @@ import { memo } from 'react';
 
 export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: { content: string }) {
   return (
-    <Box sx={{ maxWidth: 820, mx: 'auto' }}>
+    <Box
+      sx={{
+        maxWidth: 820,
+        mx: 'auto',
+        userSelect: 'text',
+        WebkitUserSelect: 'text',
+        WebkitTouchCallout: 'default',
+      }}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

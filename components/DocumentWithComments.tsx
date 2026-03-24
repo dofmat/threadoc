@@ -38,6 +38,7 @@ type Line = { x1: number; y1: number; x2: number; y2: number };
 
 const CARD_WIDTH = 320;
 const FORM_WIDTH = 300;
+const MOBILE_FORM_GUTTER = 16;
 
 export function DocumentWithComments({
   documentId,
@@ -71,13 +72,9 @@ export function DocumentWithComments({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [line, setLine] = useState<Line | null>(null);
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   const canCreateComment = allowCommenting && (Boolean(currentUser) || allowAnonymous);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = typeof document !== 'undefined';
 
   useLayoutEffect(() => {
     const contentEl = contentRef.current;
@@ -113,8 +110,11 @@ export function DocumentWithComments({
     }
 
     if (!isDesktop || !sidebarEl) {
-      setCardTops({});
-      return;
+      const frameId = window.requestAnimationFrame(() => {
+        setCardTops({});
+      });
+
+      return () => window.cancelAnimationFrame(frameId);
     }
 
     const sidebarTop = sidebarEl.getBoundingClientRect().top + window.scrollY;
@@ -134,7 +134,11 @@ export function DocumentWithComments({
       stackTop += 116;
     }
 
-    setCardTops(tops);
+    const frameId = window.requestAnimationFrame(() => {
+      setCardTops(tops);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
   }, [activeId, comments, isDesktop]);
 
   useLayoutEffect(() => {
@@ -173,24 +177,38 @@ export function DocumentWithComments({
   }, [activeId, isDesktop]);
 
   useEffect(() => {
-    updateLine();
+    const frameId = window.requestAnimationFrame(updateLine);
     window.addEventListener('scroll', updateLine, { passive: true });
     window.addEventListener('resize', updateLine);
 
     return () => {
+      window.cancelAnimationFrame(frameId);
       window.removeEventListener('scroll', updateLine);
       window.removeEventListener('resize', updateLine);
     };
   }, [updateLine]);
 
   useEffect(() => {
-    function handleMouseUp(event: MouseEvent) {
-      if (!canCreateComment || formRef.current?.contains(event.target as Node)) return;
+    function clearComposer() {
+      setForm(null);
+      setCommentText('');
+    }
+
+    function syncComposerFromSelection(options?: { preserveWhileTyping?: boolean }) {
+      const preserveWhileTyping = options?.preserveWhileTyping ?? false;
+      const activeElement = document.activeElement;
+      const isTypingInForm = Boolean(activeElement && formRef.current?.contains(activeElement));
+
+      if (!canCreateComment) {
+        clearComposer();
+        return;
+      }
+
+      if (preserveWhileTyping && isTypingInForm) return;
 
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed || !selection.toString().trim()) {
-        setForm(null);
-        setCommentText('');
+        clearComposer();
         return;
       }
 
@@ -203,7 +221,7 @@ export function DocumentWithComments({
 
       const anchor = buildSelectionAnchor(contentEl, range);
       if (!anchor.text.trim() || anchor.start === anchor.end) {
-        setForm(null);
+        clearComposer();
         return;
       }
 
@@ -212,7 +230,9 @@ export function DocumentWithComments({
         Math.max(window.scrollX + 16, rect.left + window.scrollX),
         window.scrollX + window.innerWidth - FORM_WIDTH - 16
       );
-      const nextY = rect.bottom + window.scrollY + 12;
+      const nextY = isDesktop
+        ? rect.bottom + window.scrollY + 12
+        : window.scrollY + window.innerHeight - MOBILE_FORM_GUTTER;
 
       setForm({
         anchor: anchor.text.trim(),
@@ -224,9 +244,34 @@ export function DocumentWithComments({
       setCommentText('');
     }
 
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => document.removeEventListener('mouseup', handleMouseUp);
-  }, [canCreateComment]);
+    function scheduleSync(options?: { preserveWhileTyping?: boolean }) {
+      window.setTimeout(() => syncComposerFromSelection(options), 0);
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+      if (formRef.current?.contains(event.target as Node)) return;
+      scheduleSync();
+    }
+
+    function handleTouchEnd(event: TouchEvent) {
+      if (formRef.current?.contains(event.target as Node)) return;
+      scheduleSync();
+    }
+
+    function handleSelectionChange() {
+      scheduleSync({ preserveWhileTyping: true });
+    }
+
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    document.addEventListener('selectionchange', handleSelectionChange);
+
+    return () => {
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, [canCreateComment, isDesktop]);
 
   const sidebarMinHeight = useMemo(() => {
     if (!isDesktop) return 'auto';
@@ -289,6 +334,9 @@ export function DocumentWithComments({
             borderColor: 'rgba(74, 112, 147, 0.18)',
             background:
               'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,251,255,0.98) 100%)',
+            userSelect: 'text',
+            WebkitUserSelect: 'text',
+            WebkitTouchCallout: 'default',
           }}
         >
           <Stack spacing={2.5}>
@@ -464,10 +512,13 @@ export function DocumentWithComments({
           ref={formRef}
           elevation={10}
           sx={{
-            position: 'absolute',
-            top: form.y,
-            left: form.x,
-            width: FORM_WIDTH,
+            position: isDesktop ? 'absolute' : 'fixed',
+            top: isDesktop ? form.y : 'auto',
+            left: isDesktop ? form.x : MOBILE_FORM_GUTTER,
+            right: isDesktop ? 'auto' : MOBILE_FORM_GUTTER,
+            bottom: isDesktop ? 'auto' : MOBILE_FORM_GUTTER,
+            width: isDesktop ? FORM_WIDTH : 'auto',
+            maxWidth: `calc(100vw - ${MOBILE_FORM_GUTTER * 2}px)`,
             p: 2,
             borderRadius: 3,
             zIndex: 1400,
