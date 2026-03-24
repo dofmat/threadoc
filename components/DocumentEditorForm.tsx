@@ -222,7 +222,18 @@ export function DocumentEditorForm({
             />
             <Paper
               variant="outlined"
-              sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(248, 250, 255, 0.7)' }}
+              sx={[
+                {
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(248, 250, 255, 0.7)',
+                },
+                (theme) =>
+                  theme.applyStyles('dark', {
+                    bgcolor: 'rgba(23, 40, 60, 0.7)',
+                    borderColor: 'rgba(112, 163, 215, 0.18)',
+                  }),
+              ]}
             >
               <Stack spacing={1}>
                 <Typography variant="subtitle2" fontWeight={700}>
@@ -275,12 +286,20 @@ export function DocumentEditorForm({
 
       <Paper
         variant="outlined"
-        sx={{
-          p: { xs: 2.5, md: 3.5 },
-          borderRadius: 3,
-          background:
-            'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,247,242,0.98) 100%)',
-        }}
+        sx={[
+          {
+            p: { xs: 2.5, md: 3.5 },
+            borderRadius: 3,
+            background:
+              'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,247,242,0.98) 100%)',
+          },
+          (theme) =>
+            theme.applyStyles('dark', {
+              borderColor: 'rgba(112, 163, 215, 0.18)',
+              background:
+                'linear-gradient(180deg, rgba(17, 28, 43, 0.98) 0%, rgba(12, 21, 33, 0.98) 100%)',
+            }),
+        ]}
       >
         <Stack spacing={2}>
           <Box>
