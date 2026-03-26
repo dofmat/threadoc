@@ -15,6 +15,7 @@ import { getDisplayName } from '@/lib/user-display';
 import { withDefaultSharing } from '@/lib/document-sharing';
 import { splitDocumentContent } from '@/lib/document-content';
 import { DocumentMetaPopover } from '@/components/DocumentMetaPopover';
+import { DownloadButtons } from '@/components/DownloadButtons';
 
 export default async function DocPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -83,6 +84,7 @@ export default async function DocPage({ params }: { params: Promise<{ slug: stri
             <DocumentMetaPopover metadata={parsed.metadata} />
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <DownloadButtons title={doc.title} content={doc.content} slug={slug} />
             {doc.public_access_enabled && (
               <Link href={`/share/${slug}`} style={{ textDecoration: 'none' }}>
                 <Button variant="outlined" size="small">Open public link</Button>

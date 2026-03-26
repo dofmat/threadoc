@@ -16,6 +16,7 @@ import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import { withDefaultSharing } from '@/lib/document-sharing';
 import { splitDocumentContent } from '@/lib/document-content';
 import { DocumentMetaPopover } from '@/components/DocumentMetaPopover';
+import { DownloadButtons } from '@/components/DownloadButtons';
 
 export default async function PublicSharePage({
   params,
@@ -93,6 +94,7 @@ export default async function PublicSharePage({
               {document.anonymous_comments_enabled && (
                 <Chip label="Anonymous comments on" variant="outlined" />
               )}
+              <DownloadButtons title={document.title} content={document.content} slug={slug} printPath={`/share/${slug}/print`} />
               <Link href="/login" style={{ textDecoration: 'none' }}>
                 <Button variant="outlined">Sign in</Button>
               </Link>
