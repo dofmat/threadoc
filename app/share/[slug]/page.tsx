@@ -23,7 +23,7 @@ export default async function PublicSharePage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  const { slug: shareToken } = await params;
   const supabase = await createClient();
   const adminClient = await createAdminClient();
 
@@ -33,15 +33,15 @@ export default async function PublicSharePage({
 
   const { data: baseDocument } = await adminClient
     .from('documents')
-    .select('id, slug, title, content')
-    .eq('slug', slug)
+    .select('id, slug, title, content, public_share_token')
+    .eq('public_share_token', shareToken)
     .single();
 
   if (!baseDocument) notFound();
 
   const { data: sharing } = await adminClient
     .from('documents')
-    .select('description, image, public_access_enabled, public_comments_visible, anonymous_comments_enabled')
+    .select('description, image, public_access_enabled, public_comments_visible, anonymous_comments_enabled, public_share_token')
     .eq('id', baseDocument.id)
     .single();
 
@@ -94,7 +94,7 @@ export default async function PublicSharePage({
               {document.anonymous_comments_enabled && (
                 <Chip label="Anonymous comments on" variant="outlined" />
               )}
-              <DownloadButtons title={document.title} content={document.content} slug={slug} printPath={`/share/${slug}/print`} />
+              <DownloadButtons title={document.title} content={document.content} slug={document.slug} printPath={`/share/${shareToken}/print`} />
               <Link href="/login" style={{ textDecoration: 'none' }}>
                 <Button variant="outlined">Sign in</Button>
               </Link>

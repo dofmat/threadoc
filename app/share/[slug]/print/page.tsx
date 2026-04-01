@@ -8,13 +8,13 @@ export default async function SharePrintPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  const { slug: shareToken } = await params;
   const adminClient = await createAdminClient();
 
   const { data: doc } = await adminClient
     .from('documents')
     .select('title, content, public_access_enabled')
-    .eq('slug', slug)
+    .eq('public_share_token', shareToken)
     .single();
 
   if (!doc || !doc.public_access_enabled) notFound();

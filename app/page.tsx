@@ -23,13 +23,15 @@ export default async function HomePage() {
   const { data: rawDocs } = await (supabase.from('documents').select('*').order('position', { ascending: true }) as any);
   const { data: rawFolders } = await supabase
     .from('folders')
-    .select('id, name, color, icon, position')
+    .select('*')
+    .is('parent_id', null)
     .order('position', { ascending: true });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const docs: DocForBoard[] = ((rawDocs ?? []) as any[]).map((d) => ({
     id: d.id,
     slug: d.slug,
+    public_share_token: d.public_share_token ?? null,
     title: d.title,
     content: d.content,
     description: d.description ?? null,
@@ -49,7 +51,9 @@ export default async function HomePage() {
     name: f.name,
     color: f.color ?? null,
     icon: f.icon ?? null,
+    public_share_token: f.public_share_token ?? null,
     position: f.position ?? 0,
+    parent_id: f.parent_id ?? null,
   }));
 
   return (
@@ -68,8 +72,8 @@ export default async function HomePage() {
           )}
         </Stack>
 
-        {docs.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">No documents yet.</Typography>
+        {docs.length === 0 && folders.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">No documents or folders yet.</Typography>
         ) : (
           <DocumentBoard initialDocs={docs} initialFolders={folders} isAdmin={isAdmin} />
         )}

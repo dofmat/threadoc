@@ -1,246 +1,253 @@
 'use client';
 
 import { useState } from 'react';
-import FolderIcon from '@mui/icons-material/Folder';
-import PaletteIcon from '@mui/icons-material/Palette';
-import WorkIcon from '@mui/icons-material/Work';
-import CodeIcon from '@mui/icons-material/Code';
-import StarIcon from '@mui/icons-material/Star';
-import BookmarkIcon from '@mui/icons-material/Bookmark';
-import LabelIcon from '@mui/icons-material/Label';
-import BuildIcon from '@mui/icons-material/Build';
-import ScienceIcon from '@mui/icons-material/Science';
-import DescriptionIcon from '@mui/icons-material/Description';
-import LightbulbIcon from '@mui/icons-material/Lightbulb';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import CheckIcon from '@mui/icons-material/Check';
+import Link from 'next/link';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
-import Popover from '@mui/material/Popover';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
-import Tooltip from '@mui/material/Tooltip';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { DocumentBoard } from './DocumentBoard';
-import type { DocForBoard, FolderForBoard } from './DocumentBoard';
+import AddIcon from '@mui/icons-material/Add';
+import FolderIcon from '@mui/icons-material/Folder';
+import ShareIcon from '@mui/icons-material/Share';
+import { DocumentBoard, type DocForBoard, type FolderForBoard } from './DocumentBoard';
 
-// ─── Icon map ─────────────────────────────────────────────────────────────────
-
-const FOLDER_ICON_MAP: Record<string, React.ElementType> = {
-  work: WorkIcon, code: CodeIcon, star: StarIcon, bookmark: BookmarkIcon,
-  label: LabelIcon, build: BuildIcon, science: ScienceIcon,
-  description: DescriptionIcon, lightbulb: LightbulbIcon, assessment: AssessmentIcon,
+type FolderPathItem = {
+  id: string;
+  name: string;
 };
 
-const FOLDER_ICON_OPTIONS: Array<{ value: string | null; label: string; Icon: React.ElementType }> = [
-  { value: null,          label: 'Default',  Icon: FolderIcon      },
-  { value: 'work',        label: 'Work',     Icon: WorkIcon        },
-  { value: 'code',        label: 'Code',     Icon: CodeIcon        },
-  { value: 'star',        label: 'Star',     Icon: StarIcon        },
-  { value: 'bookmark',    label: 'Bookmark', Icon: BookmarkIcon    },
-  { value: 'label',       label: 'Label',    Icon: LabelIcon       },
-  { value: 'build',       label: 'Build',    Icon: BuildIcon       },
-  { value: 'science',     label: 'Science',  Icon: ScienceIcon     },
-  { value: 'description', label: 'Docs',     Icon: DescriptionIcon },
-  { value: 'lightbulb',   label: 'Idea',     Icon: LightbulbIcon   },
-  { value: 'assessment',  label: 'Chart',    Icon: AssessmentIcon  },
-];
+function slugify(value: string) {
+  return value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
+}
 
-const FOLDER_COLORS = [
-  { value: null,      swatch: '#9e9e9e' },
-  { value: '#1565C0', swatch: '#1565C0' },
-  { value: '#2E7D32', swatch: '#2E7D32' },
-  { value: '#B71C1C', swatch: '#B71C1C' },
-  { value: '#E65100', swatch: '#E65100' },
-  { value: '#6A1B9A', swatch: '#6A1B9A' },
-  { value: '#00695C', swatch: '#00695C' },
-  { value: '#F57F17', swatch: '#F57F17' },
-  { value: '#37474F', swatch: '#37474F' },
-];
-
-// ─── FolderCustomizePopover ───────────────────────────────────────────────────
-
-function FolderCustomizePopover({
-  folder,
-  anchorEl,
+function ExplorerDialog({
+  open,
+  title,
+  label,
+  defaultValue = '',
   onClose,
   onSave,
 }: {
-  folder: FolderForBoard;
-  anchorEl: HTMLElement | null;
+  open: boolean;
+  title: string;
+  label: string;
+  defaultValue?: string;
   onClose: () => void;
-  onSave: (color: string | null, icon: string | null, name: string) => void;
+  onSave: (value: string) => void;
 }) {
-  const [color, setColor] = useState<string | null>(folder.color);
-  const [icon,  setIcon]  = useState<string | null>(folder.icon);
-  const [name,  setName]  = useState(folder.name);
+  const [value, setValue] = useState(defaultValue);
 
   return (
-    <Popover
-      open={Boolean(anchorEl)}
-      anchorEl={anchorEl}
-      onClose={onClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      slotProps={{ paper: { sx: { borderRadius: 3 } } }}
-    >
-      <Box sx={{ p: 2.5, width: 290 }}>
-        <Typography variant="subtitle2" fontWeight={700} gutterBottom>Name</Typography>
-        <Box
-          component="input"
-          value={name}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-          sx={{
-            width: '100%', mb: 2, p: 1, borderRadius: 1.5,
-            border: '1px solid', borderColor: 'divider',
-            bgcolor: 'background.paper', color: 'text.primary',
-            fontSize: '0.875rem', outline: 'none',
-            '&:focus': { borderColor: 'primary.main' },
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle>{title}</DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus
+          fullWidth
+          label={label}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && value.trim()) {
+              onSave(value.trim());
+            }
           }}
+          sx={{ mt: 1 }}
         />
-
-        <Typography variant="subtitle2" fontWeight={700} gutterBottom>Color</Typography>
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-          {FOLDER_COLORS.map((c) => (
-            <Box
-              key={String(c.value)}
-              onClick={() => setColor(c.value)}
-              sx={{
-                width: 28, height: 28, borderRadius: '50%', bgcolor: c.swatch,
-                border: '2.5px solid', borderColor: color === c.value ? 'text.primary' : 'transparent',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'transform 0.1s', '&:hover': { transform: 'scale(1.2)' },
-              }}
-            >
-              {c.value === null && color === null && <CheckIcon sx={{ fontSize: 14 }} />}
-            </Box>
-          ))}
-        </Stack>
-
-        <Typography variant="subtitle2" fontWeight={700} gutterBottom>Icon</Typography>
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mb: 2.5 }}>
-          {FOLDER_ICON_OPTIONS.map((item) => (
-            <Tooltip key={String(item.value)} title={item.label}>
-              <Box
-                onClick={() => setIcon(item.value)}
-                sx={{
-                  width: 36, height: 36, borderRadius: 1.5,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: '2px solid',
-                  borderColor: icon === item.value ? 'primary.main' : 'divider',
-                  bgcolor: icon === item.value ? 'primary.main' : 'transparent',
-                  color: icon === item.value ? 'primary.contrastText' : 'text.secondary',
-                  cursor: 'pointer', transition: 'all 0.1s',
-                  '&:hover': { borderColor: 'primary.main' },
-                }}
-              >
-                <item.Icon sx={{ fontSize: 18 }} />
-              </Box>
-            </Tooltip>
-          ))}
-        </Stack>
-
-        <Stack direction="row" spacing={1} justifyContent="flex-end">
-          <Button size="small" onClick={onClose}>Cancel</Button>
-          <Button
-            size="small" variant="contained"
-            disabled={!name.trim()}
-            onClick={() => { onSave(color, icon, name.trim()); onClose(); }}
-          >
-            Apply
-          </Button>
-        </Stack>
-      </Box>
-    </Popover>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" disabled={!value.trim()} onClick={() => onSave(value.trim())}>
+          Create
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
-
-// ─── FolderPageContent ────────────────────────────────────────────────────────
 
 export function FolderPageContent({
   initialFolder,
   initialDocs,
   initialSubFolders,
+  initialPath,
   isAdmin,
+  publicView = false,
 }: {
   initialFolder: FolderForBoard;
   initialDocs: DocForBoard[];
   initialSubFolders: FolderForBoard[];
+  initialPath: FolderPathItem[];
   isAdmin: boolean;
+  publicView?: boolean;
 }) {
-  const [folder, setFolder] = useState(initialFolder);
-  const [folderAnchor, setFolderAnchor] = useState<HTMLElement | null>(null);
+  const [folder] = useState(initialFolder);
+  const [docs, setDocs] = useState(initialDocs);
+  const [subFolders, setSubFolders] = useState(initialSubFolders);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [createDocOpen, setCreateDocOpen] = useState(false);
+  const [createFolderOpen, setCreateFolderOpen] = useState(false);
 
-  const accent = folder.color ?? '#1565C0';
-  const FolderIconComponent = folder.icon ? (FOLDER_ICON_MAP[folder.icon] ?? FolderIcon) : FolderIcon;
+  async function handleCreateFolder(name: string) {
+    setError(null);
+    setMessage(null);
 
-  function handleFolderSave(color: string | null, icon: string | null, name: string) {
-    setFolder((f) => ({ ...f, color, icon, name }));
-    fetch(`/api/folders/${folder.id}`, {
-      method: 'PATCH',
+    const response = await fetch('/api/folders', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ color, icon, name }),
+      body: JSON.stringify({
+        name,
+        position: subFolders.length,
+        parent_id: folder.id,
+      }),
     });
+
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error ?? 'Failed to create folder');
+      return;
+    }
+
+    setSubFolders((current) => [...current, data]);
+    setCreateFolderOpen(false);
+    setMessage(`Folder "${name}" created.`);
+  }
+
+  async function handleCreateDocument(title: string) {
+    setError(null);
+    setMessage(null);
+
+    const slug = slugify(title) || `doc-${Date.now()}`;
+    const response = await fetch('/api/documents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        slug,
+        content: `# ${title}\n`,
+        folderId: folder.id,
+        position: docs.length,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error ?? 'Failed to create document');
+      return;
+    }
+
+    setDocs((current) => [...current, data.document as DocForBoard]);
+    setCreateDocOpen(false);
+    setMessage(`Document "${title}" created.`);
   }
 
   return (
     <>
-      {/* Folder header */}
-      <Box sx={{ mb: 5, pb: 3, borderBottom: '3px solid', borderColor: accent }}>
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Box
-            sx={{
-              width: 56, height: 56, borderRadius: 3,
-              bgcolor: `${accent}18`,
-              border: '2px solid', borderColor: `${accent}44`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-              transition: 'all 0.2s ease',
-            }}
+      <Stack spacing={3}>
+        <Box>
+          <Breadcrumbs sx={{ mb: 1.5 }}>
+            <Link href={publicView && folder.public_share_token ? `/share/folders/${folder.public_share_token}` : '/'} style={{ textDecoration: 'none' }}>
+              {publicView ? 'Shared folder' : 'Home'}
+            </Link>
+            {initialPath.map((item) => (
+              <Link key={item.id} href={`/folders/${item.id}`} style={{ textDecoration: 'none' }}>
+                {item.name}
+              </Link>
+            ))}
+            <Typography color="text.primary">{folder.name}</Typography>
+          </Breadcrumbs>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            justifyContent="space-between"
+            alignItems={{ xs: 'flex-start', md: 'center' }}
+            spacing={2}
           >
-            <FolderIconComponent sx={{ fontSize: 30, color: accent }} />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h4" fontWeight={800} sx={{ lineHeight: 1.2 }}>
-              {folder.name}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {initialSubFolders.length > 0 && `${initialSubFolders.length} sub-folder${initialSubFolders.length !== 1 ? 's' : ''} · `}
-              {initialDocs.length} document{initialDocs.length !== 1 ? 's' : ''}
-            </Typography>
-          </Box>
-          {isAdmin && (
-            <Tooltip title="Customize folder">
-              <IconButton
-                onClick={(e) => setFolderAnchor(e.currentTarget)}
-                sx={{
-                  bgcolor: `${accent}14`,
-                  color: accent,
-                  border: '1px solid', borderColor: `${accent}33`,
-                  '&:hover': { bgcolor: `${accent}28` },
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <PaletteIcon />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Stack>
-      </Box>
+            <Box>
+              <Typography variant="overline" color="primary.main" fontWeight={700}>
+                {publicView ? 'Shared Folder' : 'Folder'}
+              </Typography>
+              <Typography variant="h4" fontWeight={800}>
+                {folder.name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {subFolders.length} folder{subFolders.length === 1 ? '' : 's'} and {docs.length} document{docs.length === 1 ? '' : 's'}
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {folder.public_share_token && (
+                <Link href={`/share/folders/${folder.public_share_token}`} style={{ textDecoration: 'none' }}>
+                  <Button variant="outlined" startIcon={<ShareIcon />}>
+                    Public link
+                  </Button>
+                </Link>
+              )}
+              {isAdmin && !publicView && (
+                <>
+                  <Button variant="outlined" startIcon={<FolderIcon />} onClick={() => setCreateFolderOpen(true)}>
+                    New folder
+                  </Button>
+                  <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateDocOpen(true)}>
+                    New document
+                  </Button>
+                </>
+              )}
+            </Stack>
+          </Stack>
+        </Box>
 
-      {/* Shared DnD grid — same component as the board */}
-      <DocumentBoard
-        initialDocs={initialDocs}
-        initialFolders={initialSubFolders}
-        isAdmin={isAdmin}
-        contextId={folder.id}
+        {(error || message) && (
+          <Stack spacing={1}>
+            {error && <Alert severity="error">{error}</Alert>}
+            {message && <Alert severity="success">{message}</Alert>}
+          </Stack>
+        )}
+
+        <DocumentBoard
+          initialDocs={docs.map((doc) => ({
+            ...doc,
+            folder_id: doc.folder_id === folder.id ? null : doc.folder_id,
+          }))}
+          initialFolders={subFolders}
+          isAdmin={isAdmin && !publicView}
+          contextId={folder.id}
+          docHrefBuilder={(doc) =>
+            publicView
+              ? doc.public_access_enabled && doc.public_share_token
+                ? `/share/${doc.public_share_token}`
+                : `/docs/${doc.slug}`
+              : `/docs/${doc.slug}`
+          }
+          folderHrefBuilder={(subFolder) =>
+            publicView && subFolder.public_share_token
+              ? `/share/folders/${subFolder.public_share_token}`
+              : `/folders/${subFolder.id}`
+          }
+        />
+      </Stack>
+
+      <ExplorerDialog
+        key={`folder-${folder.id}-${createFolderOpen ? 'open' : 'closed'}`}
+        open={createFolderOpen}
+        title="New folder"
+        label="Folder name"
+        onClose={() => setCreateFolderOpen(false)}
+        onSave={handleCreateFolder}
       />
 
-      <FolderCustomizePopover
-        folder={folder}
-        anchorEl={folderAnchor}
-        onClose={() => setFolderAnchor(null)}
-        onSave={handleFolderSave}
+      <ExplorerDialog
+        key={`doc-${folder.id}-${docs.length}-${createDocOpen ? 'open' : 'closed'}`}
+        open={createDocOpen}
+        title="New document"
+        label="Document title"
+        onClose={() => setCreateDocOpen(false)}
+        onSave={handleCreateDocument}
       />
     </>
   );

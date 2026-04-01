@@ -22,27 +22,30 @@ export default async function FolderPage({
 
   const isAdmin = user.user_metadata?.role === 'admin';
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: rawFolder } = await (supabase
-    .from('folders')
-    .select('id, name, color, icon, position, parent_id')
-    .eq('id', id)
-    .single() as any);
+  const [{ data: rawFolder }, { data: rawFolderTree }] = await Promise.all([
+    supabase
+      .from('folders')
+      .select('*')
+      .eq('id', id)
+      .single(),
+    supabase
+      .from('folders')
+      .select('id, name, parent_id'),
+  ]);
 
   if (!rawFolder) notFound();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [{ data: rawDocs }, { data: rawSubFolders }] = await Promise.all([
-    (supabase
+    supabase
       .from('documents')
       .select('*')
       .eq('folder_id', id)
-      .order('position', { ascending: true }) as any),
-    (supabase
+      .order('position', { ascending: true }),
+    supabase
       .from('folders')
-      .select('id, name, color, icon, position, parent_id')
+      .select('*')
       .eq('parent_id', id)
-      .order('position', { ascending: true }) as any),
+      .order('position', { ascending: true }),
   ]);
 
   const folder: FolderForBoard = {
@@ -50,24 +53,41 @@ export default async function FolderPage({
     name: rawFolder.name,
     color: rawFolder.color ?? null,
     icon: rawFolder.icon ?? null,
+    public_share_token: rawFolder.public_share_token ?? null,
     position: rawFolder.position ?? 0,
     parent_id: rawFolder.parent_id ?? null,
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const subFolders: FolderForBoard[] = ((rawSubFolders ?? []) as any[]).map((f: any) => ({
+  const folderMap = new Map<string, { id: string; name: string; parent_id: string | null }>(
+    ((rawFolderTree ?? []) as Array<{ id: string; name: string; parent_id: string | null }>).map((item) => [
+      item.id,
+      { id: item.id, name: item.name, parent_id: item.parent_id ?? null },
+    ]),
+  );
+
+  const initialPath: Array<{ id: string; name: string }> = [];
+  let cursor = folder.parent_id ?? null;
+  while (cursor) {
+    const parent = folderMap.get(cursor);
+    if (!parent) break;
+    initialPath.unshift({ id: parent.id, name: parent.name });
+    cursor = parent.parent_id;
+  }
+
+  const subFolders: FolderForBoard[] = (rawSubFolders ?? []).map((f) => ({
     id: f.id,
     name: f.name,
     color: f.color ?? null,
     icon: f.icon ?? null,
+    public_share_token: f.public_share_token ?? null,
     position: f.position ?? 0,
     parent_id: f.parent_id ?? null,
   }));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const docs: DocForBoard[] = ((rawDocs ?? []) as any[]).map((d) => ({
+  const docs: DocForBoard[] = (rawDocs ?? []).map((d) => ({
     id: d.id,
     slug: d.slug,
+    public_share_token: d.public_share_token ?? null,
     title: d.title,
     content: d.content,
     description: d.description ?? null,
@@ -100,6 +120,7 @@ export default async function FolderPage({
           initialFolder={folder}
           initialDocs={docs}
           initialSubFolders={subFolders}
+          initialPath={initialPath}
           isAdmin={isAdmin}
         />
       </Container>

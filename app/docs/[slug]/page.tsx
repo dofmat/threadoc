@@ -33,7 +33,7 @@ export default async function DocPage({ params }: { params: Promise<{ slug: stri
 
   const { data: sharing } = await supabase
     .from('documents')
-    .select('description, image, public_access_enabled, public_comments_visible, anonymous_comments_enabled')
+    .select('description, image, public_access_enabled, public_comments_visible, anonymous_comments_enabled, public_share_token')
     .eq('id', baseDoc.id)
     .single();
 
@@ -86,7 +86,7 @@ export default async function DocPage({ params }: { params: Promise<{ slug: stri
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
             <DownloadButtons title={doc.title} content={doc.content} slug={slug} />
             {doc.public_access_enabled && (
-              <Link href={`/share/${slug}`} style={{ textDecoration: 'none' }}>
+              <Link href={`/share/${doc.public_share_token}`} style={{ textDecoration: 'none' }}>
                 <Button variant="outlined" size="small">Open public link</Button>
               </Link>
             )}

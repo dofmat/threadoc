@@ -7,6 +7,7 @@ create table documents (
   image text,
   content text not null,
   public_access_enabled boolean not null default false,
+  public_share_token text unique not null default encode(gen_random_bytes(16), 'hex'),
   public_comments_visible boolean not null default false,
   anonymous_comments_enabled boolean not null default false,
   created_at timestamptz default now()
@@ -39,6 +40,20 @@ create table comments (
 -- Profiles view (for joining user email to comments)
 create view profiles as
   select id, email from auth.users;
+
+create table if not exists folders (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  color text,
+  icon text,
+  public_share_token text unique not null default encode(gen_random_bytes(16), 'hex'),
+  position integer not null default 0,
+  parent_id uuid references folders(id) on delete set null,
+  created_at timestamptz default now()
+);
+
+alter table folders
+  add column if not exists public_share_token text unique not null default encode(gen_random_bytes(16), 'hex');
 
 -- ── RLS ────────────────────────────────────────────────────────────────────────
 

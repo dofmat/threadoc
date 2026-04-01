@@ -18,10 +18,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { name, color, icon, position } = await request.json();
+  const { name, color, icon, position, parent_id = null } = await request.json();
   const { data, error } = await supabase
     .from('folders')
-    .insert({ name, color: color ?? null, icon: icon ?? null, position: position ?? 0 })
+    .insert({ name, color: color ?? null, icon: icon ?? null, position: position ?? 0, parent_id })
     .select()
     .single();
 

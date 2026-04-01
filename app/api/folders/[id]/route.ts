@@ -18,6 +18,7 @@ export async function PATCH(
   if (body.color !== undefined)    updates.color    = body.color;
   if (body.icon !== undefined)     updates.icon     = body.icon;
   if (body.position !== undefined) updates.position = body.position;
+  if (body.parent_id !== undefined) updates.parent_id = body.parent_id;
 
   const { data, error } = await supabase
     .from('folders')

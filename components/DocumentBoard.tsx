@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -40,6 +40,7 @@ import WorkIcon from '@mui/icons-material/Work';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import PaletteIcon from '@mui/icons-material/Palette';
 import ScienceIcon from '@mui/icons-material/Science';
+import ShareIcon from '@mui/icons-material/Share';
 import StarIcon from '@mui/icons-material/Star';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -66,6 +67,7 @@ import Link from 'next/link';
 export type DocForBoard = {
   id: string;
   slug: string;
+  public_share_token?: string | null;
   title: string;
   content: string;
   description?: string | null;
@@ -85,6 +87,7 @@ export type FolderForBoard = {
   name: string;
   color: string | null;
   icon: string | null;
+  public_share_token?: string | null;
   position: number;
   parent_id?: string | null;
 };
@@ -244,33 +247,26 @@ function Swatch({
   );
 }
 
-// ─── DocCardContent (no DnD hooks) ───────────────────────────────────────────
-
-function DocCardContent({
-  doc,
-  isAdmin,
-  onCustomize,
-  onRemoveFromFolder,
-  dragHandle,
+function BoardCardShell({
+  accent,
+  selected = false,
+  children,
 }: {
-  doc: DocForBoard;
-  isAdmin: boolean;
-  onCustomize?: (doc: DocForBoard, anchor: HTMLElement) => void;
-  onRemoveFromFolder?: (doc: DocForBoard) => void;
-  dragHandle?: React.ReactNode;
+  accent?: string | null;
+  selected?: boolean;
+  children: React.ReactNode;
 }) {
-  const accent = doc.card_color;
-  const CardIcon = doc.card_icon ? ICON_MAP[doc.card_icon] : null;
-
   return (
     <Card
       variant="outlined"
       sx={{
-        borderRadius: 3, height: '100%',
-        borderColor: accent ? `${accent}55` : 'rgba(12,123,220,0.1)',
+        borderRadius: 3,
+        height: '100%',
+        borderColor: selected ? (accent ?? 'primary.main') : accent ? `${accent}55` : 'rgba(12,123,220,0.1)',
         borderLeftWidth: accent ? 4 : 1,
         borderLeftColor: accent || undefined,
         transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease, border-color 0.2s ease',
+        boxShadow: selected && accent ? `0 0 0 3px ${accent}33` : undefined,
         '&:hover': {
           borderColor: accent ? `${accent}99` : 'primary.main',
           boxShadow: '0 12px 32px rgba(15,90,163,0.14)',
@@ -279,7 +275,35 @@ function DocCardContent({
       }}
     >
       <CardContent sx={{ p: 2.5 }}>
-        <Stack spacing={1.5}>
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── DocCardContent (no DnD hooks) ───────────────────────────────────────────
+
+function DocCardContent({
+  doc,
+  isAdmin,
+  onCustomize,
+  onRemoveFromFolder,
+  dragHandle,
+  href,
+}: {
+  doc: DocForBoard;
+  isAdmin: boolean;
+  onCustomize?: (doc: DocForBoard, anchor: HTMLElement) => void;
+  onRemoveFromFolder?: (doc: DocForBoard) => void;
+  dragHandle?: React.ReactNode;
+  href?: string;
+}) {
+  const accent = doc.card_color;
+  const CardIcon = doc.card_icon ? ICON_MAP[doc.card_icon] : null;
+
+  return (
+    <BoardCardShell accent={accent}>
+      <Stack spacing={1.5}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={0.5}>
             <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ flex: 1, minWidth: 0 }}>
               {doc.public_access_enabled && <Chip size="small" label="Public" color="primary" />}
@@ -319,7 +343,7 @@ function DocCardContent({
             </Stack>
           </Stack>
 
-          <Link href={`/docs/${doc.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+          <Link href={href ?? `/docs/${doc.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
             <Stack spacing={1}>
               {doc.image && (
                 <Box
@@ -348,9 +372,8 @@ function DocCardContent({
               </Typography>
             </Stack>
           </Link>
-        </Stack>
-      </CardContent>
-    </Card>
+      </Stack>
+    </BoardCardShell>
   );
 }
 
@@ -361,11 +384,13 @@ function SortableDocCard({
   isAdmin,
   onCustomize,
   isDragTarget,
+  href,
 }: {
   doc: DocForBoard;
   isAdmin: boolean;
   onCustomize?: (doc: DocForBoard, anchor: HTMLElement) => void;
   isDragTarget?: boolean;
+  href?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: doc.id });
@@ -406,7 +431,7 @@ function SortableDocCard({
         transition: 'opacity 0.15s ease',
       }}
     >
-      <DocCardContent doc={doc} isAdmin={isAdmin} onCustomize={onCustomize} dragHandle={dragHandle} />
+      <DocCardContent doc={doc} isAdmin={isAdmin} onCustomize={onCustomize} dragHandle={dragHandle} href={href} />
     </Box>
   );
 }
@@ -425,6 +450,8 @@ function FolderCardContent({
   onCustomizeDoc,
   onRemoveDocFromFolder,
   dragHandle,
+  folderHref,
+  docHrefBuilder,
 }: {
   folder: FolderForBoard;
   docs: DocForBoard[];
@@ -437,124 +464,79 @@ function FolderCardContent({
   onCustomizeDoc?: (doc: DocForBoard, anchor: HTMLElement) => void;
   onRemoveDocFromFolder?: (doc: DocForBoard) => void;
   dragHandle?: React.ReactNode;
+  folderHref?: string;
+  docHrefBuilder?: (doc: DocForBoard) => string;
 }) {
   const accent = folder.color ?? '#1565C0';
   const FolderIconComponent = folder.icon ? (FOLDER_ICON_MAP[folder.icon] ?? FolderIcon) : FolderIcon;
   const FolderOpenComponent = folder.icon ? (FOLDER_ICON_MAP[folder.icon] ?? FolderOpenIcon) : FolderOpenIcon;
-  const peekCount = Math.min(docs.length, 3);
-
+  const previewDocs = docs.slice(0, 3).map((doc) => doc.title).join(', ');
   return (
-    // Wrapper makes room for peeking papers at the top
-    <Box sx={{ position: 'relative', pt: peekCount > 0 ? '18px' : 0 }}>
-
-      {/* Peeking paper strips (back → front) */}
-      {Array.from({ length: peekCount }).reverse().map((_, rev) => {
-        const i = peekCount - 1 - rev; // 0 = back, peekCount-1 = front
-        return (
-          <Box
-            key={i}
-            sx={{
-              position: 'absolute',
-              top: (peekCount - 1 - i) * 5,
-              left: 10 + i * 5,
-              right: 10 + i * 5,
-              height: 20,
-              bgcolor: 'background.paper',
-              border: '1px solid',
-              borderColor: `${accent}44`,
-              borderBottom: 'none',
-              borderRadius: '4px 4px 0 0',
-              zIndex: i + 1,
-              opacity: 0.7 + i * 0.15,
-            }}
-          />
-        );
-      })}
-
-      {/* Folder tab (top-left label) */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: peekCount > 0 ? '2px' : '-16px',
-          left: 0,
-          height: 16,
-          px: 1.5,
-          bgcolor: accent,
-          borderRadius: '4px 4px 0 0',
-          display: 'flex',
-          alignItems: 'center',
-          zIndex: peekCount + 2,
-          minWidth: 60,
-          maxWidth: '50%',
-        }}
-      >
-        <Typography
-          variant="caption"
-          noWrap
-          sx={{ color: '#fff', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.03em' }}
-        >
-          {folder.name}
-        </Typography>
-      </Box>
-
-      {/* Main folder body */}
-      <Card
-        variant="outlined"
-        sx={{
-          borderRadius: '0 3px 3px 3px',
-          borderColor: isDragTarget ? accent : `${accent}55`,
-          borderWidth: isDragTarget ? 2 : 1,
-          borderTopColor: accent,
-          borderTopWidth: 2,
-          position: 'relative',
-          zIndex: peekCount + 3,
-          transition: 'border-color 0.2s ease, box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
-          boxShadow: isDragTarget ? `0 0 0 3px ${accent}33` : undefined,
-          '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: isDragTarget ? undefined : '0 8px 24px rgba(15,90,163,0.10)',
-          },
-        }}
-      >
-        <CardContent sx={{ p: 2.5 }}>
-          {/* Header row */}
-          <Stack direction="row" alignItems="center" spacing={1}>
-            {expanded
-              ? <FolderOpenComponent sx={{ color: accent, fontSize: 22 }} />
-              : <FolderIconComponent sx={{ color: accent, fontSize: 22 }} />
-            }
-            <NextLink href={`/folders/${folder.id}`} style={{ textDecoration: 'none', flex: 1, minWidth: 0 }}>
-              <Typography
-                variant="subtitle1" fontWeight={700}
-                sx={{ color: 'text.primary', lineHeight: 1.3, '&:hover': { color: accent } }}
-              >
-                {folder.name}
-              </Typography>
-            </NextLink>
-            <Chip
-              label={docs.length}
-              size="small"
-              sx={{ bgcolor: `${accent}22`, color: accent }}
-            />
-            {isAdmin && onRename && (
-              <Tooltip title="Rename">
-                <IconButton size="small" onClick={onRename} sx={{ opacity: 0.55 }}>
-                  <EditIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Tooltip>
-            )}
-            {isAdmin && onDelete && (
-              <Tooltip title="Delete folder">
-                <IconButton size="small" onClick={onDelete} sx={{ opacity: 0.55 }}>
-                  <DeleteIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Tooltip>
-            )}
-            <IconButton size="small" onClick={onToggle} sx={{ opacity: 0.55 }}>
-              {expanded ? <ExpandLessIcon sx={{ fontSize: 16 }} /> : <ExpandMoreIcon sx={{ fontSize: 16 }} />}
-            </IconButton>
-            {dragHandle}
+    <Box sx={{ position: 'relative' }}>
+      <BoardCardShell accent={accent} selected={isDragTarget}>
+        <Stack spacing={1.5}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={0.5}>
+            <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ flex: 1, minWidth: 0 }}>
+              <Chip size="small" label={`${docs.length} docs`} sx={{ bgcolor: `${accent}22`, color: accent }} />
+              {folder.public_share_token && <Chip size="small" label="Share" variant="outlined" />}
+            </Stack>
+            <Stack direction="row" spacing={0.25} flexShrink={0} alignItems="center">
+              {isAdmin && onRename && (
+                <Tooltip title="Rename">
+                  <IconButton size="small" onClick={onRename} sx={{ opacity: 0.45, '&:hover': { opacity: 1 } }}>
+                    <EditIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {folder.public_share_token && (
+                <Tooltip title="Open public link">
+                  <Link href={`/share/folders/${folder.public_share_token}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <IconButton size="small" sx={{ opacity: 0.45, '&:hover': { opacity: 1 } }}>
+                      <ShareIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Link>
+                </Tooltip>
+              )}
+              {isAdmin && onDelete && (
+                <Tooltip title="Delete folder">
+                  <IconButton size="small" onClick={onDelete} sx={{ opacity: 0.45, '&:hover': { opacity: 1 } }}>
+                    <DeleteIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
+              <IconButton size="small" onClick={onToggle} sx={{ opacity: 0.45, '&:hover': { opacity: 1 } }}>
+                {expanded ? <ExpandLessIcon sx={{ fontSize: 16 }} /> : <ExpandMoreIcon sx={{ fontSize: 16 }} />}
+              </IconButton>
+              {dragHandle}
+            </Stack>
           </Stack>
+
+          <NextLink href={folderHref ?? `/folders/${folder.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Stack spacing={1}>
+              <Stack direction="row" spacing={0.75} alignItems="flex-start">
+                <Box sx={{ color: accent, mt: 0.25, flexShrink: 0 }}>
+                  {expanded ? <FolderOpenComponent sx={{ fontSize: 18 }} /> : <FolderIconComponent sx={{ fontSize: 18 }} />}
+                </Box>
+                <Typography
+                  variant="subtitle1"
+                  fontWeight={700}
+                  sx={{ color: 'text.primary', lineHeight: 1.3, '&:hover': { color: accent } }}
+                >
+                  {folder.name}
+                </Typography>
+              </Stack>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', lineHeight: 1.6 }}
+              >
+                {previewDocs || 'Open the folder to view its documents.'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {docs.length === 0 ? 'Empty folder' : `${docs.length} document${docs.length === 1 ? '' : 's'} inside`}
+              </Typography>
+            </Stack>
+          </NextLink>
 
           {isDragTarget && !expanded && (
             <Typography variant="caption" sx={{ display: 'block', mt: 1, color: accent }}>
@@ -580,6 +562,7 @@ function FolderCardContent({
                       isAdmin={isAdmin}
                       onCustomize={onCustomizeDoc}
                       onRemoveFromFolder={onRemoveDocFromFolder}
+                      href={docHrefBuilder?.(doc)}
                     />
                   ))}
                 </Box>
@@ -590,8 +573,8 @@ function FolderCardContent({
               </Typography>
             )}
           </Collapse>
-        </CardContent>
-      </Card>
+        </Stack>
+      </BoardCardShell>
     </Box>
   );
 }
@@ -608,6 +591,8 @@ function SortableFolderCard({
   onDelete,
   onCustomizeDoc,
   onRemoveDocFromFolder,
+  folderHref,
+  docHrefBuilder,
 }: {
   item: Extract<BoardItem, { kind: 'folder' }>;
   isAdmin: boolean;
@@ -618,6 +603,8 @@ function SortableFolderCard({
   onDelete?: () => void;
   onCustomizeDoc?: (doc: DocForBoard, anchor: HTMLElement) => void;
   onRemoveDocFromFolder?: (doc: DocForBoard) => void;
+  folderHref?: string;
+  docHrefBuilder?: (doc: DocForBoard) => string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
@@ -663,6 +650,8 @@ function SortableFolderCard({
         onCustomizeDoc={onCustomizeDoc}
         onRemoveDocFromFolder={onRemoveDocFromFolder}
         dragHandle={dragHandle}
+        folderHref={folderHref}
+        docHrefBuilder={docHrefBuilder}
       />
     </Box>
   );
@@ -681,15 +670,23 @@ function CardCustomizePopover({
   onClose: () => void;
   onSave: (id: string, color: string | null, icon: string | null) => void;
 }) {
-  const [color, setColor] = useState<string | null>(null);
-  const [icon, setIcon] = useState<string | null>(null);
-
-  useEffect(() => {
-    setColor(doc?.card_color ?? null);
-    setIcon(doc?.card_icon ?? null);
-  }, [doc?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
   if (!doc) return null;
+  return <CardCustomizePopoverBody key={doc.id} doc={doc} anchorEl={anchorEl} onClose={onClose} onSave={onSave} />;
+}
+
+function CardCustomizePopoverBody({
+  doc,
+  anchorEl,
+  onClose,
+  onSave,
+}: {
+  doc: DocForBoard;
+  anchorEl: HTMLElement | null;
+  onClose: () => void;
+  onSave: (id: string, color: string | null, icon: string | null) => void;
+}) {
+  const [color, setColor] = useState<string | null>(doc.card_color ?? null);
+  const [icon, setIcon] = useState<string | null>(doc.card_icon ?? null);
 
   return (
     <Popover
@@ -767,15 +764,31 @@ function FolderDialog({
   onClose: () => void;
   onSave: (name: string, color: string | null, icon: string | null) => void;
 }) {
-  const [name,  setName]  = useState('');
-  const [color, setColor] = useState<string | null>(null);
-  const [icon,  setIcon]  = useState<string | null>(null);
+  return (
+    <FolderDialogBody
+      key={`${initial?.name ?? 'new'}-${open ? 'open' : 'closed'}`}
+      open={open}
+      initial={initial}
+      onClose={onClose}
+      onSave={onSave}
+    />
+  );
+}
 
-  useEffect(() => {
-    setName(initial?.name ?? '');
-    setColor(initial?.color ?? null);
-    setIcon(initial?.icon ?? null);
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+function FolderDialogBody({
+  open,
+  initial,
+  onClose,
+  onSave,
+}: {
+  open: boolean;
+  initial?: { name: string; color: string | null; icon: string | null };
+  onClose: () => void;
+  onSave: (name: string, color: string | null, icon: string | null) => void;
+}) {
+  const [name,  setName]  = useState(initial?.name ?? '');
+  const [color, setColor] = useState<string | null>(initial?.color ?? null);
+  const [icon,  setIcon]  = useState<string | null>(initial?.icon ?? null);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
@@ -831,12 +844,16 @@ export function DocumentBoard({
   initialFolders,
   isAdmin,
   contextId = null,
+  docHrefBuilder,
+  folderHrefBuilder,
 }: {
   initialDocs: DocForBoard[];
   initialFolders: FolderForBoard[];
   isAdmin: boolean;
   /** null = root board; folder ID = inside a specific folder */
   contextId?: string | null;
+  docHrefBuilder?: (doc: DocForBoard) => string;
+  folderHrefBuilder?: (folder: FolderForBoard) => string;
 }) {
   const [boardItems, setBoardItems] = useState<BoardItem[]>(() =>
     buildBoardItems(initialDocs, initialFolders),
@@ -1107,6 +1124,7 @@ export function DocumentBoard({
                     doc={item.doc}
                     isAdmin={isAdmin}
                     onCustomize={(doc, anchor) => { setCustomizeDoc(doc); setCustomizeAnchor(anchor); }}
+                    href={docHrefBuilder?.(item.doc)}
                   />
                 );
               }
@@ -1120,7 +1138,11 @@ export function DocumentBoard({
                   onToggle={() =>
                     setExpandedFolders((s) => {
                       const next = new Set(s);
-                      next.has(item.folder.id) ? next.delete(item.folder.id) : next.add(item.folder.id);
+                      if (next.has(item.folder.id)) {
+                        next.delete(item.folder.id);
+                      } else {
+                        next.add(item.folder.id);
+                      }
                       return next;
                     })
                   }
@@ -1128,6 +1150,8 @@ export function DocumentBoard({
                   onDelete={() => handleDeleteFolder(item.folder)}
                   onCustomizeDoc={(doc, anchor) => { setCustomizeDoc(doc); setCustomizeAnchor(anchor); }}
                   onRemoveDocFromFolder={handleRemoveDocFromFolder}
+                  folderHref={folderHrefBuilder?.(item.folder)}
+                  docHrefBuilder={docHrefBuilder}
                 />
               );
             })}
@@ -1146,7 +1170,7 @@ export function DocumentBoard({
               }}
             >
               {activeItem.kind === 'doc' ? (
-                <DocCardContent doc={activeItem.doc} isAdmin={false} />
+                <DocCardContent doc={activeItem.doc} isAdmin={false} href={docHrefBuilder?.(activeItem.doc)} />
               ) : (
                 <FolderCardContent
                   folder={activeItem.folder}
@@ -1155,6 +1179,8 @@ export function DocumentBoard({
                   expanded={false}
                   isDragTarget={false}
                   onToggle={() => {}}
+                  folderHref={folderHrefBuilder?.(activeItem.folder)}
+                  docHrefBuilder={docHrefBuilder}
                 />
               )}
             </Box>
