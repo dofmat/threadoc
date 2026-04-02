@@ -1,51 +1,32 @@
-import { notFound, redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { Navbar } from '@/components/Navbar';
-import { FolderPageContent } from '@/components/FolderPageContent';
-import type { DocForBoard, FolderForBoard } from '@/components/DocumentBoard';
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
-import Button from '@mui/material/Button';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import Link from 'next/link';
+import { notFound, redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { Navbar } from "@/components/Navbar";
+import { FolderPageContent } from "@/components/FolderPageContent";
+import type { DocForBoard, FolderForBoard } from "@/components/DocumentBoard";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
 
-export default async function FolderPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function FolderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-  const isAdmin = user.user_metadata?.role === 'admin';
+  const isAdmin = user.user_metadata?.role === "admin";
 
   const [{ data: rawFolder }, { data: rawFolderTree }] = await Promise.all([
-    supabase
-      .from('folders')
-      .select('*')
-      .eq('id', id)
-      .single(),
-    supabase
-      .from('folders')
-      .select('id, name, parent_id'),
+    supabase.from("folders").select("*").eq("id", id).single(),
+    supabase.from("folders").select("id, name, parent_id"),
   ]);
 
   if (!rawFolder) notFound();
 
   const [{ data: rawDocs }, { data: rawSubFolders }] = await Promise.all([
-    supabase
-      .from('documents')
-      .select('*')
-      .eq('folder_id', id)
-      .order('position', { ascending: true }),
-    supabase
-      .from('folders')
-      .select('*')
-      .eq('parent_id', id)
-      .order('position', { ascending: true }),
+    supabase.from("documents").select("*").eq("folder_id", id).order("position", { ascending: true }),
+    supabase.from("folders").select("*").eq("parent_id", id).order("position", { ascending: true }),
   ]);
 
   const folder: FolderForBoard = {
@@ -103,19 +84,9 @@ export default async function FolderPage({
   }));
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <Navbar isAdmin={isAdmin} />
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Link href="/" style={{ textDecoration: 'none' }}>
-          <Button
-            startIcon={<ArrowBackIcon />}
-            size="small"
-            sx={{ mb: 3, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
-          >
-            Back to board
-          </Button>
-        </Link>
-
         <FolderPageContent
           initialFolder={folder}
           initialDocs={docs}

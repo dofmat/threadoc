@@ -1,31 +1,38 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Stack from '@mui/material/Stack';
-import AddIcon from '@mui/icons-material/Add';
-import Link from 'next/link';
-import { Navbar } from '@/components/Navbar';
-import { DocumentBoard } from '@/components/DocumentBoard';
-import type { DocForBoard, FolderForBoard } from '@/components/DocumentBoard';
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import Breadcrumbs from "@mui/material/Breadcrumbs";
+import Stack from "@mui/material/Stack";
+import AddIcon from "@mui/icons-material/Add";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import Link from "next/link";
+import { Navbar } from "@/components/Navbar";
+import { DocumentBoard } from "@/components/DocumentBoard";
+import type { DocForBoard, FolderForBoard } from "@/components/DocumentBoard";
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!user) redirect('/login');
+  if (!user) redirect("/login");
 
-  const isAdmin = user.user_metadata?.role === 'admin';
+  const isAdmin = user.user_metadata?.role === "admin";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: rawDocs } = await (supabase.from('documents').select('*').order('position', { ascending: true }) as any);
+  const { data: rawDocs } = await (supabase
+    .from("documents")
+    .select("*")
+    .order("position", { ascending: true }) as any);
   const { data: rawFolders } = await supabase
-    .from('folders')
-    .select('*')
-    .is('parent_id', null)
-    .order('position', { ascending: true });
+    .from("folders")
+    .select("*")
+    .is("parent_id", null)
+    .order("position", { ascending: true });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const docs: DocForBoard[] = ((rawDocs ?? []) as any[]).map((d) => ({
@@ -44,6 +51,7 @@ export default async function HomePage() {
     public_access_enabled: d.public_access_enabled ?? false,
     public_comments_visible: d.public_comments_visible ?? false,
     anonymous_comments_enabled: d.anonymous_comments_enabled ?? false,
+    doc_type: d.doc_type ?? "md",
   }));
 
   const folders: FolderForBoard[] = (rawFolders ?? []).map((f) => ({
@@ -57,23 +65,34 @@ export default async function HomePage() {
   }));
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <Navbar isAdmin={isAdmin} />
       <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Board header */}
-        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={4}>
-          <Typography variant="h5" fontWeight={700}>Documents</Typography>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} mb={3}>
+          <Breadcrumbs>
+            <Typography color="text.primary">Home</Typography>
+          </Breadcrumbs>
           {isAdmin && (
-            <Link href="/admin/documents/new" style={{ textDecoration: 'none' }}>
-              <Button variant="contained" startIcon={<AddIcon />} size="small">
-                New document
-              </Button>
-            </Link>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Link href="/admin/documents/new-whiteboard" style={{ textDecoration: "none" }}>
+                <Button variant="outlined" size="small" startIcon={<DashboardIcon />}>
+                  New whiteboard
+                </Button>
+              </Link>
+              <Link href="/admin/documents/new" style={{ textDecoration: "none" }}>
+                <Button variant="contained" size="small" startIcon={<AddIcon />}>
+                  New document
+                </Button>
+              </Link>
+            </Stack>
           )}
         </Stack>
 
         {docs.length === 0 && folders.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">No documents or folders yet.</Typography>
+          <Typography variant="body2" color="text.secondary">
+            No documents or folders yet.
+          </Typography>
         ) : (
           <DocumentBoard initialDocs={docs} initialFolders={folders} isAdmin={isAdmin} />
         )}

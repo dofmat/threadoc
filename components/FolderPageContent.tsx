@@ -1,22 +1,24 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import Alert from '@mui/material/Alert';
-import Box from '@mui/material/Box';
-import Breadcrumbs from '@mui/material/Breadcrumbs';
-import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
-import Stack from '@mui/material/Stack';
-import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
-import AddIcon from '@mui/icons-material/Add';
-import FolderIcon from '@mui/icons-material/Folder';
-import ShareIcon from '@mui/icons-material/Share';
-import { DocumentBoard, type DocForBoard, type FolderForBoard } from './DocumentBoard';
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Alert from "@mui/material/Alert";
+
+import Breadcrumbs from "@mui/material/Breadcrumbs";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import AddIcon from "@mui/icons-material/Add";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import FolderIcon from "@mui/icons-material/Folder";
+import ShareIcon from "@mui/icons-material/Share";
+import { DocumentBoard, type DocForBoard, type FolderForBoard } from "./DocumentBoard";
 
 type FolderPathItem = {
   id: string;
@@ -24,14 +26,19 @@ type FolderPathItem = {
 };
 
 function slugify(value: string) {
-  return value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-");
 }
 
 function ExplorerDialog({
   open,
   title,
   label,
-  defaultValue = '',
+  defaultValue = "",
   onClose,
   onSave,
 }: {
@@ -55,7 +62,7 @@ function ExplorerDialog({
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && value.trim()) {
+            if (event.key === "Enter" && value.trim()) {
               onSave(value.trim());
             }
           }}
@@ -94,14 +101,15 @@ export function FolderPageContent({
   const [error, setError] = useState<string | null>(null);
   const [createDocOpen, setCreateDocOpen] = useState(false);
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
+  const router = useRouter();
 
   async function handleCreateFolder(name: string) {
     setError(null);
     setMessage(null);
 
-    const response = await fetch('/api/folders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/api/folders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name,
         position: subFolders.length,
@@ -111,7 +119,7 @@ export function FolderPageContent({
 
     const data = await response.json();
     if (!response.ok) {
-      setError(data.error ?? 'Failed to create folder');
+      setError(data.error ?? "Failed to create folder");
       return;
     }
 
@@ -125,9 +133,9 @@ export function FolderPageContent({
     setMessage(null);
 
     const slug = slugify(title) || `doc-${Date.now()}`;
-    const response = await fetch('/api/documents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/api/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
         slug,
@@ -139,7 +147,7 @@ export function FolderPageContent({
 
     const data = await response.json();
     if (!response.ok) {
-      setError(data.error ?? 'Failed to create document');
+      setError(data.error ?? "Failed to create document");
       return;
     }
 
@@ -151,56 +159,54 @@ export function FolderPageContent({
   return (
     <>
       <Stack spacing={3}>
-        <Box>
-          <Breadcrumbs sx={{ mb: 1.5 }}>
-            <Link href={publicView && folder.public_share_token ? `/share/folders/${folder.public_share_token}` : '/'} style={{ textDecoration: 'none' }}>
-              {publicView ? 'Shared folder' : 'Home'}
+        <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+          <Breadcrumbs>
+            <Link
+              href={publicView && folder.public_share_token ? `/share/folders/${folder.public_share_token}` : "/"}
+              style={{ textDecoration: "none" }}
+            >
+              {publicView ? "Shared folder" : "Home"}
             </Link>
             {initialPath.map((item) => (
-              <Link key={item.id} href={`/folders/${item.id}`} style={{ textDecoration: 'none' }}>
+              <Link key={item.id} href={`/folders/${item.id}`} style={{ textDecoration: "none" }}>
                 {item.name}
               </Link>
             ))}
             <Typography color="text.primary">{folder.name}</Typography>
           </Breadcrumbs>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            justifyContent="space-between"
-            alignItems={{ xs: 'flex-start', md: 'center' }}
-            spacing={2}
-          >
-            <Box>
-              <Typography variant="overline" color="primary.main" fontWeight={700}>
-                {publicView ? 'Shared Folder' : 'Folder'}
-              </Typography>
-              <Typography variant="h4" fontWeight={800}>
-                {folder.name}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {subFolders.length} folder{subFolders.length === 1 ? '' : 's'} and {docs.length} document{docs.length === 1 ? '' : 's'}
-              </Typography>
-            </Box>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {folder.public_share_token && (
-                <Link href={`/share/folders/${folder.public_share_token}`} style={{ textDecoration: 'none' }}>
-                  <Button variant="outlined" startIcon={<ShareIcon />}>
-                    Public link
-                  </Button>
-                </Link>
-              )}
-              {isAdmin && !publicView && (
-                <>
-                  <Button variant="outlined" startIcon={<FolderIcon />} onClick={() => setCreateFolderOpen(true)}>
-                    New folder
-                  </Button>
-                  <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateDocOpen(true)}>
-                    New document
-                  </Button>
-                </>
-              )}
-            </Stack>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            {folder.public_share_token && (
+              <Link href={`/share/folders/${folder.public_share_token}`} style={{ textDecoration: "none" }}>
+                <Button variant="outlined" size="small" startIcon={<ShareIcon />}>
+                  Public link
+                </Button>
+              </Link>
+            )}
+            {isAdmin && !publicView && (
+              <>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FolderIcon />}
+                  onClick={() => setCreateFolderOpen(true)}
+                >
+                  New folder
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<DashboardIcon />}
+                  onClick={() => router.push(`/admin/documents/new-whiteboard`)}
+                >
+                  New whiteboard
+                </Button>
+                <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setCreateDocOpen(true)}>
+                  New document
+                </Button>
+              </>
+            )}
           </Stack>
-        </Box>
+        </Stack>
 
         {(error || message) && (
           <Stack spacing={1}>
@@ -233,7 +239,7 @@ export function FolderPageContent({
       </Stack>
 
       <ExplorerDialog
-        key={`folder-${folder.id}-${createFolderOpen ? 'open' : 'closed'}`}
+        key={`folder-${folder.id}-${createFolderOpen ? "open" : "closed"}`}
         open={createFolderOpen}
         title="New folder"
         label="Folder name"
@@ -242,7 +248,7 @@ export function FolderPageContent({
       />
 
       <ExplorerDialog
-        key={`doc-${folder.id}-${docs.length}-${createDocOpen ? 'open' : 'closed'}`}
+        key={`doc-${folder.id}-${docs.length}-${createDocOpen ? "open" : "closed"}`}
         open={createDocOpen}
         title="New document"
         label="Document title"
